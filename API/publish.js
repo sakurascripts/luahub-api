@@ -3,7 +3,7 @@ const path = require("path")
 
 const DATA_FILE = path.join(process.cwd(), "data", "scripts.json")
 
-const const API_KEY = process.env.API_KEY
+const API_KEY = process.env.API_KEY
 
 function loadScripts() {
     if (!fs.existsSync(DATA_FILE)) {
