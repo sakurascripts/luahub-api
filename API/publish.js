@@ -1,47 +1,64 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("fs")
+const path = require("path")
 
-export default function handler(req, res) {
+const DATA_FILE = path.join(process.cwd(), "data", "scripts.json")
+
+const const API_KEY = process.env.API_KEY
+
+function loadScripts() {
+    if (!fs.existsSync(DATA_FILE)) {
+        fs.writeFileSync(DATA_FILE, "[]")
+    }
+
+    return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"))
+}
+
+function saveScripts(data) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2))
+}
+
+module.exports = async (req, res) => {
     if (req.method !== "POST") {
         return res.status(405).json({
-            error: "POST only"
-        });
+            success: false,
+            message: "POST only"
+        })
     }
 
-    const PASSWORD = "passwordapikey123";
+    try {
+        const body = req.body
 
-    const {
-        password,
-        title,
-        script
-    } = req.body;
+        if (!body.password || body.password ~= API_KEY) {
+            return res.status(401).json({
+                success: false,
+                message: "Wrong password"
+            })
+        }
 
-    if (password !== PASSWORD) {
-        return res.status(401).json({
-            error: "Wrong password"
-        });
+        const scripts = loadScripts()
+
+        const newScript = {
+            id: "Script_" + Math.random().toString(16).slice(2, 10),
+            name: body.name || "Unnamed",
+            code: body.code || "",
+            author: body.author || "Unknown",
+            public: true,
+            created: Date.now()
+        }
+
+        scripts.push(newScript)
+
+        saveScripts(scripts)
+
+        return res.status(200).json({
+            success: true,
+            script: newScript
+        })
+
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.toString()
+        })
     }
-
-    const file = path.join(process.cwd(), "data", "scripts.json");
-
-    if (!fs.existsSync(file)) {
-        fs.writeFileSync(file, "[]");
-    }
-
-    const scripts = JSON.parse(fs.readFileSync(file));
-
-    scripts.push({
-        title,
-        script,
-        time: Date.now()
-    });
-
-    fs.writeFileSync(
-        file,
-        JSON.stringify(scripts, null, 2)
-    );
-
-    res.status(200).json({
-        success: true
-    });
 }
